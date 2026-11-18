@@ -85,30 +85,27 @@ export function createHills(size = 5000, segments = 1000) {
   return new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true }));
 }
 
-export function createMap(scene,x,z, radius ) {
+export function createAcid(scene, x, z, radius) {
+  const geometry = new THREE.CircleGeometry(radius, 32);
 
-const geometry = new THREE.CircleGeometry(radius, 32);
+  const material = new THREE.MeshPhysicalMaterial({
+    color: COLORS.swamp,
+    roughness: 0.1,
+    metalness: 0.1,
+    transmission: 0.6,
+    ior: 1.5,
+    emissive: 0x39FF14,
+    emissiveIntensity: 1.5,
+  });
 
-// create material 
-const material = new THREE.MeshPhysicalMaterial({ 
-  color: COLORS.swamp,
-  roughness: 0.1,       // Lower values make reflections sharper
-  metalness: 0.1,       // Gives a slight metallic tint to reflections
-  transmission: 0.6,    // Glass-like transparency (0 = opaque, 1 = see-through)
-  ior: 1.5,       
-  emissive: 0x39FF14,       // The color of the glow
-  emissiveIntensity: 1.5,    // Push this above 1.0 to trigger bloom
-  //side: THREE.DoubleSide  // makes material double sided, not needed for this purpose 
-});
+  const circle = new THREE.Mesh(geometry, material);
+  circle.rotation.x = -Math.PI / 2;
+  circle.position.set(x, 0.5, z);
+  scene.add(circle);
 
-// make circular mesh 
-const circle = new THREE.Mesh(geometry, material);
-circle.rotation.x = -Math.PI/2; 
-circle.position.x = x; 
-circle.position.z = z; 
-circle.position.y = 0.5; 
-scene.add(circle);
+  return circle; // <-- so you can animate it
 }
+
 
 /* Creates home based (not used) */ 
 export function createBase() {

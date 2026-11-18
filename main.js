@@ -19,7 +19,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 
 // imported functions 
 import { heightAt } from './world.js'; // imports the hightAt function, gets Z at specific x,y
-import { createHills, createMap, createBase, generatePlants, generateWalls, createCloudAt } from './world.js';
+import { createHills, createAcid, createBase, generatePlants, generateWalls, createCloudAt } from './world.js';
 import { createPlayer, updatePlayer } from './characters/player.js';
 import { renderParticles } from './boids.js';
 import { createCyborg, cyborgHeight, cyborgWidth } from './characters/cyborg.js'; 
@@ -238,6 +238,14 @@ const skyLoader = new RGBELoader();
   scene.backgroundRotation.y = Math.PI / 2;
 });*/
 
+// animate acid 
+const acid = createAcid(scene,0,800,500);
+const MIN = 1;
+const MAX = 10;
+const mid = (MAX + MIN) / 2;   // 10.5
+const amp = (MAX - MIN) / 2;   // 9.5
+const speed = 0.6;               // radians per second
+
 animate()
 // check if mounted 
 let mount_rad = 700
@@ -277,6 +285,12 @@ const PLAYER_SPEED = 30;
   //ƒcheckFlowerCollection(player, flowers); 
 
   requestAnimationFrame(animate);
+
+  // animate acid in sine functino 
+  const t = clock.getElapsedTime();
+  acid.position.y = mid + amp * Math.sin(t * speed);
+
+  renderer.render(scene, camera);
 
 composer.render(); 
   // Conditional rendering switch
@@ -328,7 +342,7 @@ function loadReplen() {
 
  scene.add(generateWalls(x,z,radius,10)); // x,z,radius,count
  spawnCans(scene, x,z,radius,100);  //x,z,radius,count
- createMap(scene, x,z,radius); 
+
 
 }
 
@@ -399,7 +413,7 @@ function mount() {
   rig.detach();                          // camera + controls off the player
   cyborg.rotation.y = player.rotation.y; // so the view doesn't jump
   cyborg.add(player);                    // player rides as a child of the cyborg
-  player.position.set(cyborgWidth/3, cyborgHeight/2, 0);
+  player.position.set(cyborgWidth/3, cyborgHeight, 0);
   player.rotation.copy(cyborg.rotation)
   cyborgGroundOffset = cyborg.position.y - heightAt(cyborg.position.x, cyborg.position.z);
   rig = attachCamera(mounted,camera, cyborg, document.body, {
@@ -415,6 +429,10 @@ function dismount() {
   c.x += 10;
   player.position.y = heightAt(player.position.x, player.position.z);
   player.rotation.copy(cyborg.rotation)
-  rig = attachCamera(mounted,camera, player);
+  rig = attachCamera(mounted,camera, player, document.body, {
+    pivotHeight: 7,
+    //radius: cyborgHeight * 1.5,
+  });
   mounted = false;
 }
+
