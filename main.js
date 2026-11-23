@@ -98,7 +98,7 @@ let flower = {
 
 
 let the_fog = true; 
-let birdsEyeView = true; // toggle for birds eye view camera
+let birdsEyeView = false; // toggle for birds eye view camera
 
 
 // scene
@@ -354,7 +354,9 @@ function mount() {
   cyborg.rotation.y = player.rotation.y; // so the view doesn't jump
   cyborg.add(player);                    // player rides as a child of the cyborg
   player.position.set(cyborgWidth/3, cyborgHeight, 0);
-  player.rotation.copy(cyborg.rotation)
+  // The player inherits the cyborg's world rotation as a child. Keep its
+  // local rotation neutral so the rotation is not applied twice.
+  player.rotation.set(0, 0, 0);
   cyborgGroundOffset = cyborg.position.y - heightAt(cyborg.position.x, cyborg.position.z);
   rig = attachCamera(mounted,camera, cyborg, document.body, {
     pivotHeight: cyborgHeight,
@@ -366,8 +368,12 @@ function mount() {
 function dismount() {
   rig.detach();
   scene.attach(player); // keeps the player's world position
-  c.x += 10;
-  player.position.y = heightAt(player.position.x, player.position.z);
+  // Place the player just to the cyborg's right in world space.
+  const dismountOffset = new THREE.Vector3(cyborgWidth / 2 + 2, 0, 0)
+    .applyAxisAngle(new THREE.Vector3(0, 1, 0), cyborg.rotation.y);
+  player.position.x = cyborg.position.x + dismountOffset.x;
+  player.position.z = cyborg.position.z + dismountOffset.z;
+  player.position.y = heightAt(player.position.x, player.position.z) + 1;
   player.rotation.copy(cyborg.rotation)
   rig = attachCamera(mounted,camera, player, document.body, {
     pivotHeight: 7,

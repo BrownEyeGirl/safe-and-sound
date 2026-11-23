@@ -212,8 +212,8 @@ export function generateMap(scene, { seed = 69, counts = {} } = {}) {
   }
 
     //debugging 
-  console.log("Rooms: " + rooms)
-  console.log("Paths: " + paths)
+  console.log(rooms)
+  console.log(paths)
 
 
   return {
