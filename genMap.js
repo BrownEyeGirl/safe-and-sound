@@ -163,8 +163,8 @@ export function generateMap(scene, { seed = 69, counts = {} } = {}) {
     const parent = room.parent;
     if (!parent.placed) continue; // its parent never fit, so it can't exist either
 
-    const width = room.type === 'botanical' ? NARROW : WIDE;
-    const spread = wedge * (room.type === 'danger' ? 0.5 : 0.8);
+    const width = (room.type === 'botanical' || room.type === 'danger') ? NARROW : WIDE; // if condition room.type is true, use narrow; otherwise use wide
+    const spread = wedge * (room.type === 'danger' ? 0.3 : 0.7); // determines how short hallways are using spead - danger is closer than the other rooms, less spead.
     const center = room.type === 'industrial' ? (industrial.indexOf(room) + 0.5) * wedge : parent.angle;
 
     for (let t = 0; t < TRIES; t++) {
