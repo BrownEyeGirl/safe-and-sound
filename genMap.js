@@ -44,17 +44,17 @@ const NARROW = 40;  // except the ones leading to botanical zones (Mae only)
 const RING = { industrial: 600, botanical: 1000, safe: 1300, danger: 1650 }; // distance from the base (r)
 const GAP = 80;     // minimum empty space between rooms
 const PATH_GAP = 10;       // minimum empty space between two different hallways
-const EXTEND = 2;          // hallways reach this many blocks into each room (1 block = the hallway's width, ensures connection)
+const EXTEND = 0.5;          // hallways reach this many blocks into each room (1 block = the hallway's width, ensures connection)
 const OFFSETS = [0, 60, -60]; // a hallway can leave its parent from the center or a bit to either side
 const LIMIT = 1900; // keep rooms inside the 4000x4000 map with 100 padding on each side
 const TRIES = 200;  // placement attempts per room
 
 const BUILD = { // sets base for building each zone  
-  base:       (scene, x, z)    => baseZone(scene, x, z),
-  industrial: (scene, x, z)    => industrialZone(scene, x, z),
+  base:       (scene, x, z)    => baseZone(scene, x, z, SIZES.base[0],SIZES.base[1]),
+  industrial: (scene, x, z)    => industrialZone(scene, x, z,SIZES.industrial[0],SIZES.industrial[1]),
   botanical:  (scene, x, z, r) => botanicalZone(scene, x, z, r), // returns { update }
-  safe:       (scene, x, z)    => safeZone(scene, x, z),
-  danger:     (scene, x, z)    => dangerZone(scene, x, z),
+  safe:       (scene, x, z)    => safeZone(scene, x, z,SIZES.safe[0], SIZES.safe[1]),
+  danger:     (scene, x, z)    => dangerZone(scene, x, z, SIZES.danger[0], SIZES.danger[1]),
 };
 
 /*  small helpers  */
@@ -187,7 +187,7 @@ export function generateMap(scene, { seed = 69, counts = {} } = {}) {
     if (!room.placed) console.warn(`couldn't place a ${room.type} zone`);
   }
 
-  console.log(rooms)
+
 
   /* BUILD IT IN THE WORLD */
   const updaters = [];
@@ -210,6 +210,11 @@ export function generateMap(scene, { seed = 69, counts = {} } = {}) {
       scene.add(mesh);
     }
   }
+
+    //debugging 
+  console.log("Rooms: " + rooms)
+  console.log("Paths: " + paths)
+
 
   return {
     rooms,
