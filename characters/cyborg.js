@@ -10,8 +10,8 @@ const CAMERA_BEHIND = 20;    // how far behind the cyborg the camera sits ("x")
 const CAMERA_SLOPE_EFFECT = 6; // how much the camera height changes on steep slopes
 const CAMERA_SMOOTHING = 4;    // higher = camera reacts faster to slope changes
 
-export let cyborgHeight = 140; 
-export let cyborgWidth = 100; 
+export let cyborgHeight = 14; 
+export let cyborgWidth = 10; 
 
 // Input: which keys are currently held down
 const keys = {};

@@ -28,6 +28,9 @@ import { attachCamera, moveMesh } from './cameraControls.js';
 import { Can, checkCanCollection, spawnCans, cans } from './items/cans.js'; 
 //import { Flower, checkFlowerCollection, flowers } from './items/flowers.js'; 
 
+import { baseZone, industrialZone,botanicalZone } from './zones.js'; 
+
+
 import * as COLORS from './style/colors.js'; 
 ///
 let scene, renderer, controls, camera, player, cyborg,loc;
@@ -94,18 +97,14 @@ let flower = {
 }
 
 
-
 let the_fog = true; 
-let birdsEyeView = false; // toggle for birds eye view camera
+let birdsEyeView = true; // toggle for birds eye view camera
 
 
-let lavender = 0xE4E0FF
-
-
-  // scene
-  scene = new THREE.Scene();
-  scene.background = new THREE.Color(COLORS.backgroundFog)
-  scene.fog = new THREE.Fog(COLORS.backgroundFog, 0, 2000); // new fog, darker, shorter range
+// scene
+scene = new THREE.Scene();
+scene.background = new THREE.Color(COLORS.backgroundFog)
+//scene.fog = new THREE.Fog(COLORS.backgroundFog, 0, 2000); // new fog, darker, shorter range
 
 
 // to see, ambient light 
@@ -118,13 +117,27 @@ sun.position.set(1000, 2000, 100);
 sun.castShadow = true; 
 scene.add(sun);
 
-let hills = createHills(); 
-scene.add(hills);
-loadAnimals(); // load the boids (birds) into the scene
-loadPlants(); // load the trees into the scene
-loadReplen(); 
-console.log(cans)
-loadArchitecture(); // load the base and other architecture
+
+import { generateMap } from './genMap.js';
+
+const map = generateMap(scene, { seed: 69 });
+// create the player after this, e.g. player.position.set(map.spawn.x, 0, map.spawn.z)
+
+
+//let botanical = botanicalZone(scene, 80, 0, 300); // x, z, radius
+//let basez = baseZone(scene,300,200)
+
+//loadAnimals(); // load the boids (birds) into the scene. add to animate:  flock.update(); // boids
+//loadPlants(); // load the trees into the scene
+//loadReplen(); 
+//loadArchitecture(); // load the base and other architecture
+
+//import { loadZones } from './zones.js';
+
+//let zones;                 // with your other top-level lets
+//zones = loadZones(scene);  // replaces loadReplen(); and the acid lines
+
+
 
   /* Renderer */
   renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -142,7 +155,7 @@ loadArchitecture(); // load the base and other architecture
     const height = window.innerHeight; 
     camera = new THREE.PerspectiveCamera(100, width / height, 1, 20000); // camera to make map 
     
-    camera.position.set(0, 1000, 0); // X, Y (height), Z. 2. Position high up on the Y-axis looking straight down. 
+    camera.position.set(0, 3000, 0); // X, Y (height), Z. 2. Position high up on the Y-axis looking straight down. 
     camera.lookAt(0, 0, 0);  // 3. Point the camera at the center of the scene (or use lookAt)
   }
 
@@ -160,91 +173,17 @@ loadArchitecture(); // load the base and other architecture
   }
 
 
-  // EFFECT COMPOSER 
-  const composer = new EffectComposer(renderer);
-  composer.addPass(new RenderPass(scene, camera));
-  
-    const bokeh = new BokehPass(scene, camera, {
-      focus: 90.0,        // distance where image is sharp
-      aperture: 0.0001,  // blur strength (smaller = subtle blur)
-      maxblur: 0.001      // max blur allowed
-    });
-   //composer.addPass(bokeh); 
-    
-    // postprocessing
-    //composer = new EffectComposer( renderer );
-    //composer.addPass( new RenderPass( scene, camera ) );
-
-    //const effect1 = new ShaderPass( DotScreenShader );
-   // effect1.uniforms[ 'scale' ].value = 10;
-   // composer.addPass( effect1 );
-
-  //  const effect2 = new ShaderPass( RGBShiftShader );
-   // effect2.uniforms[ 'amount' ].value = 0.0015;
-   // composer.addPass( effect2 );
-
-    const filmPass = new FilmPass();
-   composer.addPass( filmPass );
-
-   const params = {
-      shape: 0.2,
-      radius: 0.7,
-      rotateR: Math.PI / 12,
-      rotateB: Math.PI / 12,
-      rotateG: Math.PI /10,
-      scatter: 0.1,
-      blending: 0.8,
-      blendingMode: 1,
-      greyscale: false,
-      disable: false
-    };
-  const halftonePass = new HalftonePass( params );
-// composer.addPass( halftonePass );
+/* Test zone functions */ 
 
 
-
-  const bloomPass = new UnrealBloomPass(
-    new THREE.Vector2(window.innerWidth, window.innerHeight), 
-    0.1,  // Glow strength
-    0.4,  // Glow radius
-    0.95  // Threshold (only objects brighter than this will glow)
-);
-//composer.addPass(bloomPass);
-
-
-  const dotScreen = new ShaderPass( DotScreenShader );
-dotScreen.uniforms[ 'scale' ].value = 4;
-//composer.addPass( dotScreen );
-
-const rgbShift = new ShaderPass( RGBShiftShader );
-rgbShift.uniforms[ 'amount' ].value = 0.0015;
-//composer.addPass( rgbShift );
-
-composer.addPass( new OutputPass() );
-
-
-//const skyLoader = new THREE.TextureLoader();
-
-  // load background 
-  /*skyLoader.load('media/sky/sky.jpeg', function (texture) {
-      scene.background = texture;
-  });*/
-const skyLoader = new RGBELoader();
-
-/*skyLoader.load('media/sky/sky.hdr', function (texture) {
-  texture.mapping = THREE.EquirectangularReflectionMapping;
-  scene.background = texture;
-  scene.environmentIntensity = 0; // Default is 1.0; increase to brighten or decrease to dim
-  scene.backgroundRotation.y = Math.PI / 2;
-});*/
 
 // animate acid 
-const acid = createAcid(scene,0,800,500);
+/*const acid = createAcid(scene,0,800,500);
 const MIN = 1;
 const MAX = 10;
 const mid = (MAX + MIN) / 2;   // 10.5
 const amp = (MAX - MIN) / 2;   // 9.5
-const speed = 0.6;               // radians per second
+const speed = 0.6; */              // radians per second
 
 animate()
 // check if mounted 
@@ -266,7 +205,6 @@ const PLAYER_SPEED = 30;
     y: ${player.position.y.toFixed(1)}`; // players location rounded to nearest int
     //sky.position.copy(player.position);
 
-
     // attemtp to move player and cyborg 
     player.getWorldPosition(playerWorld);
 
@@ -278,24 +216,29 @@ const PLAYER_SPEED = 30;
       updatePlayer(player, dt, PLAYER_SPEED);
     }
     //updatePlayer(player, clock.getDelta(), PLAYER_SPEED);
-    flock.update(); // birds
+    //const t = clock.getElapsedTime();
+    //botanical.update(t);
+
+    checkCanCollection(player, cans); 
+    map.update(clock.getElapsedTime());
   }
 
-  checkCanCollection(player, cans); 
+  //zones.update(clock.getElapsedTime());
+  
   //ƒcheckFlowerCollection(player, flowers); 
 
   requestAnimationFrame(animate);
 
   // animate acid in sine functino 
-  const t = clock.getElapsedTime();
-  acid.position.y = mid + amp * Math.sin(t * speed);
+  //const t = clock.getElapsedTime();
+  //acid.position.y = mid + amp * Math.sin(t * speed);
 
   renderer.render(scene, camera);
 
-composer.render(); 
+//composer.render(); 
   // Conditional rendering switch
     if (the_fog) {
-        composer.render();
+        //composer.render();
         scene.background = new THREE.Color(COLORS.backgroundFog)
         //scene.fog = new THREE.Fog(0x000000, 0, 700); // new fog, darker, shorter range
     } else {
@@ -311,14 +254,24 @@ function onWindowResize() {
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
+
+
+
+
+
+
+
+
+
+/* Archive of functions */ 
+
 function loadArchitecture() {
   //scene.add(createBase()); // create the home base at 0,0
 //  scene.add(loadBuilding(bando1)); 
   scene.add(loadBuilding(base)); 
   scene.add(loadBuilding(parking_garage));
   scene.add(loadBuilding(dumpster)); 
-const myCloud = createCloudAt(120, -85, 60, 30);
-scene.add(myCloud);
+
 }
 
 function loadAnimals() {
@@ -332,19 +285,6 @@ function loadPlants() {
   scene.add(generatePlants(dead_trees));
 }
 
-/* Loads replenish  */ 
-
-
-function loadReplen() {
-  let x = 0
-  let z = 800
-  let radius = 500
-
- scene.add(generateWalls(x,z,radius,10)); // x,z,radius,count
- spawnCans(scene, x,z,radius,100);  //x,z,radius,count
-
-
-}
 
 /* Loads in GLTF building */ 
  function loadBuilding(building) {

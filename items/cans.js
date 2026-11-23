@@ -55,14 +55,10 @@ export class Can {
     }
 }
 
-export function spawnCans(scene, x, z, radius, count) {
-    generateCans(scene, x,z,radius,count)
- 
-}
 
 
 /* seeded perlin / simplex noise generator for plants */
-export function generateCans(scene, cx, cz, radius, count) {
+export function spawnCans(scene, cx, cz, radius, count) {
   const rand = mulberry32(69); // seeded random, same numbers every load
   const items = new THREE.Group(); // container for all the flowers
   const f = new THREE.Group(); 
@@ -96,7 +92,6 @@ export function checkCanCollection(player, cans) {
 
             can.boundingBox.visible = true;
 
-            console.log("Can nearby!");
             if(player.position.distanceTo(can.mesh.position) < collectionDist) {
                 can.collected = true; 
                 can.collect() 
@@ -108,20 +103,4 @@ export function checkCanCollection(player, cans) {
         }
     }
 }
-
-
-function radarBox(can, scene) {
- // attemtp to create boundign box
-  /// 1. Create an empty Box3 bounding box
-    const box = new THREE.Box3();
-
-    // 2. Compute the bounding box of the glTF scene
-    box.setFromObject(can);
-    const boxH = new THREE.BoxHelper( can, 0xffff00 );
-
-    scene.add(boxH)
-
-}
-
-
 

@@ -1,64 +1,127 @@
-/* seeded perlin / simplex noise generator for plants 
-export function generateFlowers(item) {
-  const rand = mulberry32(item.seed); // seeded random, same numbers every load
-  const loader = new GLTFLoader(); // loads gltf model files
+import * as THREE from 'three';
+import { mulberry32, heightAt } from '../world.js'
+
+
+export let flowers = []
+const visibleDist = 100; 
+const collectionDist = 10; 
+
+export class flower {
+    constructor(scene, position) {
+        this.scene = scene; 
+        this.collected = false;
+
+        const geometry = new THREE.CylinderGeometry(
+            0.25, // top r
+            0.25, // bottom r
+            0.7, // height
+            16 // segments?  
+        )
+
+        const material = new THREE.MeshStandardMaterial({
+            color: 0x04D9FF,
+            metalness: 1.8,
+            roughness: 0.3, 
+            emissive: 0x04D9FF,       // The color of the glow
+            emissiveIntensity: 2.0,    // Push this above 1.0 to trigger bloom
+        });
+
+        this.mesh = new THREE.Mesh(geometry, material);
+        this.mesh.scale.set(10,10,10)
+        this.mesh.position.copy(position); // set position 
+
+
+        // bounding box 
+        // Create bounding box helper
+        this.boundingBox = new THREE.BoxHelper(this.mesh, 0x04D9FF);
+
+        // Hide initially
+        this.boundingBox.visible = false;
+
+        this.scene.add(this.mesh);
+        this.scene.add(this.boundingBox);
+
+        flowers.push(this) // add enture enstance to array
+        this.scene.add(this.mesh); // add to scene 
+    }
+
+    getMesh() {
+        return this.mesh; 
+    }
+    
+    collect() {
+        this.mesh.visible = false; 
+        this.boundingBox.visible = false; 
+    }
+}
+
+export function spawnFlowers(scene, x, z, radius, count) {
+    generateFlowers(scene, x,z,radius,count)
+ 
+}
+
+
+/* seeded perlin / simplex noise generator for plants */
+export function generateFlowers(scene, cx, cz, radius, count) {
+  const rand = mulberry32(69); // seeded random, same numbers every load
   const items = new THREE.Group(); // container for all the flowers
   const f = new THREE.Group(); 
 
-  loader.load(item.model, function(gltf) { // runs once the model has loaded
-    const baseFlower = gltf.scene; // original flower, we clone it for each one
+  for (let i = 0; i < count; i++) { // one flower per loop
 
-    const radius = 500; // how far out flowers can spawn
-    const cx = 0; // circle centre x
-    const cz = 0; // circle centre z
-
-    for (let i = 0; i < item.count; i++) { // one flower per loop
-
+     
       // random point inside a circle
       const angle = rand() * Math.PI * 2; // random direction
       const dist = Math.sqrt(rand()) * radius; // random distance, sqrt keeps it evenly spread
-      const x = cx + Math.cos(angle) * dist; // angle + distance -> x
-      const z = cz + Math.sin(angle) * dist; // angle + distance -> z
+      const x = cx + Math.cos(angle) * dist; // angle + distance from center -> x
+      const z = cz + Math.sin(angle) * dist; // angle + distance from c -> z
 
-      //const n = noise2D(x * 0.001, z * 0.001); // optional clustering filter
-      //if (n > 0.1) { ... }
-
-      const flower = baseFlower.clone(true); // copy the flower
-      flower.scale.setScalar(item.scale); // scale each flower on its own instead of the group
-      flower.position.set(x, heightAt(x, z), z); // set position on the clone, not baseFlower
-      flower.rotation.y = rand() * Math.PI * 2; // random spin
-
-      const boxH = new THREE.BoxHelper( flower, 0xffff00 );
-
-      f.add(flower); // add it to the group
-      f.add(boxH)
-      items.add(f)
+      if(heightAt(x,z) > 5) {
+        const flower = new flower(
+                scene,
+                new THREE.Vector3(x, heightAt(x,z), z)
+        );
+        flowers.push(flower)
     }
-
-    console.log(items.children.length); // logs here, after the flowers actually exist
-  });
-
-  return items; // starts empty, fills up once the model loads
+    }
 }
 
-export function checkFlowerCollection(player, flowers) {
+export function checkCanCollection(player, flowers) {
 
     for (const flower of flowers) {
 
         if (flower.collected) continue;
 
-        if (player.position.distanceTo(flower.mesh.position) < 100) {
+        if (player.position.distanceTo(flower.mesh.position) < visibleDist) {
 
-            // Show bounding box
             flower.boundingBox.visible = true;
 
             console.log("flower nearby!");
-
-            // can.collect();
+            if(player.position.distanceTo(flower.mesh.position) < collectionDist) {
+                flower.collected = true; 
+                flower.collect() 
+            }
         }
 
         else {
             flower.boundingBox.visible = false;
         }
     }
-}*/
+}
+
+
+function radarBox(flower, scene) {
+ // attemtp to create boundign box
+  /// 1. Create an empty Box3 bounding box
+    const box = new THREE.Box3();
+
+    // 2. Compute the bounding box of the glTF scene
+    box.setFromObject(flower);
+    const boxH = new THREE.BoxHelper( flower, 0xffff00 );
+
+    scene.add(boxH)
+
+}
+
+
+

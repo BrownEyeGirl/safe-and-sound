@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { createNoise2D } from "https://cdn.skypack.dev/simplex-noise";
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import * as COLORS from './style/colors.js'
+import * as COLORS from './style/colors.js'; 
 
 
 // Perlin noise: three.js addon, based on Ken Perlin's "Improved Noise" (2002).
@@ -22,14 +22,44 @@ const BIG_HILLS = [
   [600, 1500, 380, 600, 150],
 ];
 
+
+/* Random Noise */ 
 const noise = new ImprovedNoise();
 
 // Noise in roughly -1..1. The z value is a fixed fractional offset: this noise
 // returns 0 at whole-number coordinates, so we avoid sampling on the grid.
 const perlin = (x, y) => noise.noise(x, y, SEED + 0.5);
 
+/* Mulberry32 PRNG for consistent random numbers (https://www.4rknova.com/blog/2026/03/01/mulberry32-rng) */
+export function mulberry32(a) {
+    return function() {
+      var t = a += 0x6D2B79F5;
+      t = Math.imul(t ^ t >>> 15, t | 1);
+      t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    }
+}
+
+/* Helper GLTF */ 
+export function loadGLTF(path) {
+  return new Promise((resolve, reject) => {
+    loader.load(
+      path,
+      (gltf) => {
+        scene.add(gltf.scene);
+        resolve(gltf.scene);
+      },
+      undefined,
+      (error) => {
+        reject(error);
+      }
+    );
+  });
+}
+
+
 // Height added by the big hills at a point
-function bigHillsAt(x, z) {
+/*function bigHillsAt(x, z) {
   let sum = 0;
   for (const [hx, hz, h, r, flat] of BIG_HILLS) {
     const dist = Math.hypot(x - hx, z - hz);
@@ -37,55 +67,94 @@ function bigHillsAt(x, z) {
     sum += (1 - t) ** 2 * h;
   }
   return sum;
-}
+}*/
 
-// Rolling hills: noise that fades to flat toward FIELD_RADIUS
-function hillsAt(x, z) {
+// Rolling hills: noise that fades to flat toward FIELD_RADIUS let hills = createHills(); scene.add(hills);
+/*function hillsAt(x, z) {
   const n = (perlin(x * 0.01, z * 0.02) + 0.05 * perlin(x * 0.01, z * 0.03)) * 0.5;
   const d = Math.min(1, Math.hypot(x, z) / FIELD_RADIUS);
   const centerBoost = 1 - d * d * (3 - 2 * d);
   return n * centerBoost * MAX_HEIGHT;
-}
+}*/
 
 // On big hills the rolling bumps are flattened to 1/5 (no water damage)
-function heightFrom(x, z, big) {
+/*function heightFrom(x, z, big) {
   return big + hillsAt(x, z) * (big > 60 ? 0.2 : 1);
+} */
+
+
+
+/* Collisions */ 
+/* Hill zones: [x, z, radius]. filled in by createHills() */
+const HILL_ZONES = [];
+
+// Hills only exist inside a zone: full height at the center, fading to flat at the edge
+export function heightAt(x, z) {
+  let fade = 0;
+  for (const [hx, hz, r] of HILL_ZONES) {
+    const t = Math.min(1, Math.hypot(x - hx, z - hz) / r);
+    fade = Math.max(fade, 1 - t * t * (3 - 2 * t)); // smoothstep, 1 at center -> 0 at edge
+  }
+  if (fade === 0) return 0; // outside every zone: flat ground
+
+  const n = (perlin(x * 0.01, z * 0.02) + 0.05 * perlin(x * 0.01, z * 0.03)) * 0.5;
+  return n * fade * MAX_HEIGHT;
 }
 
-export const heightAt = (x, z) => heightFrom(x, z, bigHillsAt(x, z));
 
-export function createHills(size = 5000, segments = 1000) {
-  const geo = new THREE.PlaneGeometry(size, size, segments, segments);
+/* Industrial Zone */ 
+/* create Hills in a circle of radius r at x,z (add with scene.add(createHills(0, 800, 500)) */ 
+export function createHills(scene,x = 0, z = 0, radius = 500, segments = 100) {
+  HILL_ZONES.push([x, z, radius]); // register BEFORE building so heightAt knows about it
+
+  const geo = new THREE.RingGeometry(0, radius, 128, segments); // circular, with rows going outward
   geo.rotateX(-Math.PI / 2); // lay it flat so y is up
 
   const [low, mid, high] = COLORS.hillColors.map((c) => new THREE.Color(c));
-  const bigGreen = new THREE.Color(COLORS.hillColors[3]);
   const c = new THREE.Color(); // reused for every vertex
 
   const pos = geo.attributes.position;
   const colors = new Float32Array(pos.count * 3);
 
   for (let i = 0; i < pos.count; i++) {
-    const x = pos.getX(i), z = pos.getZ(i);
-    const big = bigHillsAt(x, z);
-    const h = heightFrom(x, z, big);
+    const wx = pos.getX(i) + x, wz = pos.getZ(i) + z; // world coords, so noise matches heightAt
+    const h = heightAt(wx, wz);
     pos.setY(i, h);
 
-    // Color by height: low -> mid -> high, then blend toward green on big hills
+    // Color by height: low -> mid -> high
     const t = THREE.MathUtils.clamp(h / (MAX_HEIGHT * 0.6), 0, 1);
     if (t < 0.5) c.copy(low).lerp(mid, t * 2);
     else c.copy(mid).lerp(high, (t - 0.5) * 2);
-    c.lerp(bigGreen, THREE.MathUtils.smoothstep(big, 40, 60));
 
     c.toArray(colors, i * 3);
   }
 
   geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
   geo.computeVertexNormals();
-  return new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true }));
+
+  const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true }));
+  mesh.position.set(x, 0, z); // vertices are local, so move the patch into place
+  scene.add(mesh); 
+  return mesh;
 }
 
-export function createAcid(scene, x, z, radius) {
+
+/* flat ground for everywhere that isn't a hill zone (add with scene.add(createGround())) */
+export function createGround(scene,x,z,width,length,color=0xB2BEB5) {
+  const geo = new THREE.PlaneGeometry(width, length);
+  geo.rotateX(-Math.PI / 2);
+  const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color }));
+  mesh.position.y = -0.1; // just under the hills so the two don't flicker
+  mesh.position.x = x;
+  mesh.position.z = z; 
+  scene.add(mesh);
+  return mesh;
+}
+
+/* Acid pool that bobs up and down in a sine wave.
+   const acid = createAcid(scene, x, z, radius);
+   in animate: acid.update(clock.getElapsedTime()); */
+export function createAcid(scene, x, z, radius, { min = 1, max = 10, speed = 0.6 } = {}) {
   const geometry = new THREE.CircleGeometry(radius, 32);
 
   const material = new THREE.MeshPhysicalMaterial({
@@ -101,9 +170,17 @@ export function createAcid(scene, x, z, radius) {
   const circle = new THREE.Mesh(geometry, material);
   circle.rotation.x = -Math.PI / 2;
   circle.position.set(x, 0.5, z);
-  scene.add(circle);
+  scene.add(circle); 
 
-  return circle; // <-- so you can animate it
+  const mid = (max + min) / 2;
+  const amp = (max - min) / 2;
+
+  // call every frame with elapsed time in seconds
+  function update(t) {
+    circle.position.y = mid + amp * Math.sin(t * speed);
+  }
+
+  return { mesh: circle, update };
 }
 
 
@@ -129,32 +206,6 @@ export function createBase() {
   return square;
 }
 
-
-/* Mulberry32 PRNG for consistent random numbers (https://www.4rknova.com/blog/2026/03/01/mulberry32-rng) */
-export function mulberry32(a) {
-    return function() {
-      var t = a += 0x6D2B79F5;
-      t = Math.imul(t ^ t >>> 15, t | 1);
-      t ^= t + Math.imul(t ^ t >>> 7, t | 61);
-      return ((t ^ t >>> 14) >>> 0) / 4294967296;
-    }
-}
-
-export function loadGLTF(path) {
-  return new Promise((resolve, reject) => {
-    loader.load(
-      path,
-      (gltf) => {
-        scene.add(gltf.scene);
-        resolve(gltf.scene);
-      },
-      undefined,
-      (error) => {
-        reject(error);
-      }
-    );
-  });
-}
 
 
 /* seeded perlin / simplex ? noise generator for plants */ 
@@ -238,6 +289,9 @@ export function generateWalls(cx = 0, cz = 0, radius = 3000, count = 20) {
 }
 
 
+/* Create a cloud. code: 
+const myCloud = createCloudAt(120, -85, 60, 30);
+scene.add(myCloud);*/ 
 export function createCloudAt(scene, x, z, y = 50, s) {
   const cloudGroup = new THREE.Group();
   
@@ -278,3 +332,15 @@ export function createCloudAt(scene, x, z, y = 50, s) {
 
 }
 
+
+
+/* ZONES */ 
+/* Loads replenish  room with cans and acid 
+in main: 
+let replen;              // top-level, with your other lets
+replen = loadReplen(scene);
+
+in animate:
+const t = clock.getElapsedTime();
+replen.update(t);
+*/ 
