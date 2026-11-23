@@ -39,7 +39,7 @@ const SIZES = {
 };
 
 const WIDE = 60;    // every path (Mae & Cyborg)
-const NARROW = 40;  // except the ones leading to botanical zones (Mae only)
+const NARROW = 10;  // except the ones leading to botanical zones (Mae only)
 
 const RING = { industrial: 600, botanical: 1000, safe: 1300, danger: 1650 }; // distance from the base (r)
 const GAP = 80;     // minimum empty space between rooms

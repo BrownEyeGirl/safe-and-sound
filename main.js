@@ -192,8 +192,6 @@ const speed = 0.6; */              // radians per second
 animate()
 // check if mounted 
 let mount_rad = 700
-const CYBORG_SPEED = 60; // attempt to move cyborhg
-const PLAYER_SPEED = 20; 
 
 function animate() {
 
@@ -220,7 +218,8 @@ const PLAYER_SPEED = 30;
       moveMesh(cyborg, dt, CYBORG_SPEED);
       cyborg.position.y = heightAt(cyborg.position.x, cyborg.position.z) + cyborgGroundOffset;
     } else {
-      updatePlayer(player, dt, PLAYER_SPEED);
+      moveMesh(player, dt, PLAYER_SPEED);
+      //updatePlayer(player, dt, PLAYER_SPEED);
     }
     // keeps the player inside connected zone and hallway footprints
     // allows movement directly across shared boundaries
@@ -232,6 +231,7 @@ const PLAYER_SPEED = 30;
         ? heightAt(previousX, previousZ) + cyborgGroundOffset // restores the mounted cyborg's riding height
         : heightAt(previousX, previousZ) + 1; // places the body back on the terrain
     } // finishes the movement rollback
+   
     player.getWorldPosition(playerWorld);
     const zone = map.getZoneAt(playerWorld.x, playerWorld.z);
     if (zone !== currentZone) {
@@ -249,13 +249,9 @@ const PLAYER_SPEED = 30;
 
   //zones.update(clock.getElapsedTime());
   
-  //ƒcheckFlowerCollection(player, flowers); 
+  //checkFlowerCollection(player, flowers); 
 
   requestAnimationFrame(animate);
-
-  // animate acid in sine functino 
-  //const t = clock.getElapsedTime();
-  //acid.position.y = mid + amp * Math.sin(t * speed);
 
   renderer.render(scene, camera);
 

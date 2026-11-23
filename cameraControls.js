@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { heightAt } from './world.js'
 
 const SPEED = 50; // how fast the camera moves, in units per second
 const MOUSE_SENSITIVITY = 0.002;
@@ -86,6 +87,7 @@ export function moveMesh(mesh, dt, speed = SPEED) {
     move.normalize();
     mesh.position.addScaledVector(move, speed * dt);
   }
+  mesh.position.y = heightAt(mesh.position.x, mesh.position.z)+1;
 
   return move; 
 }

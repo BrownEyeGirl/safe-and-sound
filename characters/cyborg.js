@@ -11,7 +11,7 @@ const CAMERA_SLOPE_EFFECT = 6; // how much the camera height changes on steep sl
 const CAMERA_SMOOTHING = 4;    // higher = camera reacts faster to slope changes
 
 export let cyborgHeight = 14; 
-export let cyborgWidth = 10; 
+export let cyborgWidth = 14; 
 
 // Input: which keys are currently held down
 const keys = {};
@@ -26,7 +26,7 @@ window.addEventListener('keyup', (e) => {
 // Create the cyborg and attach the camera to it 
 export function createCyborg(scene, camera, domElement = document.body) {
   const cyborg = new THREE.Mesh(
-    new THREE.BoxGeometry(cyborgWidth, cyborgHeight, cyborgWidth-50),
+    new THREE.BoxGeometry(cyborgWidth, cyborgHeight, cyborgWidth),
     new THREE.MeshBasicMaterial({ color: 0x0000FF })
   );
   cyborg.position.set(-100, 0, -100); 
