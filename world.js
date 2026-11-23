@@ -184,29 +184,6 @@ export function createAcid(scene, x, z, radius, { min = 1, max = 10, speed = 0.6
 }
 
 
-/* Creates home based (not used) */ 
-export function createBase() {
-  // 1. Create a square geometry (width = 2, height = 2)
-  const geometry = new THREE.PlaneGeometry(20, 20,20);
-
-  // 2. Create a material and set it to render on both sides
-  const material = new THREE.MeshBasicMaterial({ 
-      color: 0xff0A0A, 
-      side: THREE.DoubleSide 
-  });
-
-  // 3. Combine them into a mesh
-  const square = new THREE.Mesh(geometry, material);
-
-  // 4. Position the square at the desired location (e.g., y = 0)
-  square.position.set(0, 0, 0);
-  square.position.y = heightAt(square.position.x, square.position.z) + 0.1;
-
-  // 4. Add the square to scene
-  return square;
-}
-
-
 
 /* seeded perlin / simplex ? noise generator for plants */ 
 export function generatePlants(item) { // 
@@ -254,7 +231,7 @@ export function generatePlants(item) { //
 }
 
 /* Wall of buildings pngs */
-export function generateWalls(cx = 0, cz = 0, radius = 3000, count = 20) {
+export function createBotanicalWalls(scene,cx = 0, cz = 0, radius = 3000, count = 20) {
   const loader = new THREE.TextureLoader();
   const walls = new THREE.Group();
 
@@ -284,6 +261,7 @@ export function generateWalls(cx = 0, cz = 0, radius = 3000, count = 20) {
     wall.lookAt(cx, y, cz);                      // face the NEW center
     walls.add(wall);
   }
+  scene.add(walls)
 
   return walls;
 }

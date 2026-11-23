@@ -16,10 +16,12 @@ import { HalftonePass } from 'three/addons/postprocessing/HalftonePass.js';
 import { LUTPass } from 'three/addons/postprocessing/LUTPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
+// sky 
+import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
+
 
 // imported functions 
 import { heightAt } from './world.js'; // imports the hightAt function, gets Z at specific x,y
-import { createHills, createAcid, createBase, generatePlants, generateWalls, createCloudAt } from './world.js';
 import { createPlayer, updatePlayer } from './characters/player.js';
 import { renderParticles } from './boids.js';
 import { createCyborg, cyborgHeight, cyborgWidth } from './characters/cyborg.js'; 
@@ -42,6 +44,7 @@ let rig; // current camera rig, can be attached/detached when switchign meshes
 let cyborgGroundOffset = 0;
 const playerWorld = new THREE.Vector3();
 let mounted = false;
+let currentZone = null;
 
 /* Items */ 
 let trees = {
@@ -121,7 +124,8 @@ scene.add(sun);
 import { generateMap } from './genMap.js';
 
 const map = generateMap(scene, { seed: 69 });
-// create the player after this, e.g. player.position.set(map.spawn.x, 0, map.spawn.z)
+// create the player after this, player.position.set(map.spawn.x, 0, map.spawn.z)
+
 
 
 //let botanical = botanicalZone(scene, 80, 0, 300); // x, z, radius
@@ -209,11 +213,31 @@ const PLAYER_SPEED = 30;
     player.getWorldPosition(playerWorld);
 
     const dt = clock.getDelta(); // only call once per frame
+    const mover = mounted ? cyborg : player; // selects the body that receives movement
+    const previousX = mover.position.x; // saves the starting horizontal position
+    const previousZ = mover.position.z; // saves the starting depth position
     if (mounted) {
       moveMesh(cyborg, dt, CYBORG_SPEED);
       cyborg.position.y = heightAt(cyborg.position.x, cyborg.position.z) + cyborgGroundOffset;
     } else {
       updatePlayer(player, dt, PLAYER_SPEED);
+    }
+    // keeps the player inside connected zone and hallway footprints
+    // allows movement directly across shared boundaries
+    player.getWorldPosition(playerWorld); // reads the player's world position, including when mounted
+    if (!map.canOccupy(playerWorld.x, playerWorld.z)) { // detects movement outside all footprints
+      mover.position.x = previousX; // restores the previous horizontal position
+      mover.position.z = previousZ; // restores the previous depth position
+      mover.position.y = mounted // selects the correct ground height for the active body
+        ? heightAt(previousX, previousZ) + cyborgGroundOffset // restores the mounted cyborg's riding height
+        : heightAt(previousX, previousZ) + 1; // places the body back on the terrain
+    } // finishes the movement rollback
+    player.getWorldPosition(playerWorld);
+    const zone = map.getZoneAt(playerWorld.x, playerWorld.z);
+    if (zone !== currentZone) {
+      currentZone = zone;
+      map.setZoneFog(zone);
+      console.log(zone ? `Player entered ${zone.type} zone` : 'Player left all zones');
     }
     //updatePlayer(player, clock.getDelta(), PLAYER_SPEED);
     //const t = clock.getElapsedTime();
@@ -239,11 +263,11 @@ const PLAYER_SPEED = 30;
   // Conditional rendering switch
     if (the_fog) {
         //composer.render();
-        scene.background = new THREE.Color(COLORS.backgroundFog)
+        //scene.background = new THREE.Color(COLORS.backgroundFog)
         //scene.fog = new THREE.Fog(0x000000, 0, 700); // new fog, darker, shorter range
     } else {
         //renderer.render(scene, camera);
-        scene.background = new THREE.Color(COLORS.backgroundFog)
+       // scene.background = new THREE.Color(COLORS.backgroundFog)
         //scene.fog = new THREE.Fog(lavender, 0, 300); // new fog, darker, shorter range
     }
 }

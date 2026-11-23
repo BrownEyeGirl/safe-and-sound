@@ -22,7 +22,7 @@ import { baseZone, industrialZone, botanicalZone, safeZone, dangerZone } from '.
 */
 
 // wALLS FUNCTION (declared at the end)
-const texture = new THREE.TextureLoader().load('/textures/wall.png');
+const texture = new THREE.TextureLoader().load('/media/facade.png');
 texture.wrapS = THREE.RepeatWrapping;
 texture.wrapT = THREE.RepeatWrapping;
 
@@ -198,7 +198,7 @@ export function generateMap(scene, { seed = 69, counts = {} } = {}) {
 
   // path floors: wide ones sit a hair lower so overlaps at corners don't z-fight (ground is y = 0)
   const mats = {
-    [WIDE]:   new THREE.MeshStandardMaterial({ color: 0x7d8087, roughness: 0.9 }),
+    [WIDE]:   new THREE.MeshStandardMaterial({ color: 0x7d8087, roughness: 0.9 }), // hallway ground colours
     [NARROW]: new THREE.MeshStandardMaterial({ color: 0x5f7f5a, roughness: 0.9 }),
   };
   for (const path of paths) {
@@ -208,6 +208,12 @@ export function generateMap(scene, { seed = 69, counts = {} } = {}) {
       mesh.position.set((r.x0 + r.x1) / 2, top - 1, (r.z0 + r.z1) / 2);
       mesh.receiveShadow = true;
       scene.add(mesh);
+
+      const bounds = new THREE.Box3( // bounding box helper for the bounds of each hallway 
+        new THREE.Vector3(r.x0, 0, r.z0),
+        new THREE.Vector3(r.x1, 60, r.z1)
+      );
+      scene.add(new THREE.Box3Helper(bounds, 0xffff00));
     }
   }
 
@@ -220,6 +226,35 @@ export function generateMap(scene, { seed = 69, counts = {} } = {}) {
     rooms,
     paths,
     spawn: new THREE.Vector3(base.x, 0, base.z),
+    getZoneAt(x, z) {
+      return rooms.find((room) => {
+        if (room.type === 'botanical') {
+          return Math.hypot(x - room.x, z - room.z) <= hw(room);
+        }
+        return Math.abs(x - room.x) <= hw(room) &&
+          Math.abs(z - room.z) <= hd(room);
+      }) ?? null;
+    },
+    canOccupy(x, z) { // checks whether a world position is inside a traversable footprint
+      const insideRoom = rooms.some((room) => // checks every room footprint
+        Math.abs(x - room.x) <= hw(room) && // checks the room's horizontal bounds
+        Math.abs(z - room.z) <= hd(room) // checks the room's depth bounds
+      ); // finishes the room footprint check
+      const insideHallway = paths.some((path) => path.rects.some((rect) => // checks each hallway segment
+        x >= rect.x0 && x <= rect.x1 && z >= rect.z0 && z <= rect.z1 // checks the segment bounds
+      )); // finishes the hallway footprint check
+      return insideRoom || insideHallway; // allows movement inside either kind of footprint
+    }, // finishes the map boundary check
+    /* sets random fog color for each zone to test */ 
+    setZoneFog(zone) {
+      if (!zone) {
+        scene.fog = null;
+        return;
+      }
+
+      const color = new THREE.Color(Math.random(), Math.random(), Math.random());
+      scene.fog = new THREE.FogExp2(color, 0.02);
+    },
     update: (t) => updaters.forEach((fn) => fn(t)),
   };
 }
