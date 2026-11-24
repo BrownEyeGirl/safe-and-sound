@@ -32,7 +32,7 @@ const DEFAULT_COUNTS = { fun: 2, botanical: 3, safe: 2, danger: 2 };
 // room footprint in world units [width (x), depth (z)]
 const SIZES = {
   base:       [400, 400],
-  fun: [300, 400],
+  fun:        [500, 400],
   botanical:  [500, 500],
   safe:       [400, 400],
   danger:     [240, 240],

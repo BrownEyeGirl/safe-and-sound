@@ -151,30 +151,49 @@ const map = generateMap(scene, { seed: 69 });
   document.body.appendChild(renderer.domElement);
 
 
-  /* Birds eye view camera for map */
-  if(birdsEyeView) {
-    //const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);   // 0. Add ambient light to the scene
-   // scene.add(ambientLight);
-    const width = window.innerWidth;  // 1. Create a PerspectiveCamera or OrthographicCamera
-    const height = window.innerHeight; 
-    camera = new THREE.PerspectiveCamera(100, width / height, 1, 20000); // camera to make map 
-    
-    camera.position.set(0, 3000, 0); // X, Y (height), Z. 2. Position high up on the Y-axis looking straight down. 
-    camera.lookAt(0, 0, 0);  // 3. Point the camera at the center of the scene (or use lookAt)
-  }
+  camera = new THREE.PerspectiveCamera(105, window.innerWidth / window.innerHeight, 0.4, 5000);
+  cyborg = createCyborg(scene, camera);
+  player = createPlayer(scene);
+  rig = attachCamera(mounted, camera, player);
 
-  if(!birdsEyeView) {
+  /* Player Position Display */
+  loc = document.createElement('div');
+  loc.id = "info";
+  document.body.appendChild(loc);
+
+  /* Bird's-eye view toggle */
+  const viewToggle = document.createElement('label');
+  viewToggle.style.cssText = 'position:fixed;top:10px;right:10px;z-index:10;padding:10px;background:rgba(0,0,0,0.8);color:white;font:16px sans-serif;cursor:pointer;';
+  viewToggle.addEventListener('click', (event) => event.stopPropagation());
+  const viewCheckbox = document.createElement('input');
+  viewCheckbox.type = 'checkbox';
+  viewCheckbox.checked = birdsEyeView;
+  viewCheckbox.addEventListener('change', () => setBirdsEyeView(viewCheckbox.checked));
+  viewToggle.append(viewCheckbox, ' Bird’s-eye view');
+  document.body.appendChild(viewToggle);
+
+  function setBirdsEyeView(enabled) {
+    birdsEyeView = enabled;
+    rig?.detach();
+    if (document.pointerLockElement) document.exitPointerLock();
+
+    if (birdsEyeView) {
+      camera = new THREE.PerspectiveCamera(100, window.innerWidth / window.innerHeight, 1, 20000);
+      camera.position.set(0, 3000, 0);
+      camera.lookAt(0, 0, 0);
+      loc.hidden = true;
+      return;
+    }
+
     camera = new THREE.PerspectiveCamera(105, window.innerWidth / window.innerHeight, 0.4, 5000);
-    
-    cyborg = createCyborg(scene, camera); 
-    player = createPlayer(scene);
-    rig = attachCamera(mounted,camera, player);  
-
-    /* Player Position Display */
-    loc = document.createElement('div');
-    loc.id = "info"; 
-    document.body.appendChild(loc);
+    const target = mounted ? cyborg : player;
+    rig = attachCamera(mounted, camera, target, document.body, {
+      pivotHeight: mounted ? cyborgHeight : 7,
+    });
+    loc.hidden = false;
   }
+
+  if (birdsEyeView) setBirdsEyeView(true);
 
 
 /* Test zone functions */ 
@@ -198,6 +217,7 @@ function animate() {
   let mount_rad = 700
 const CYBORG_SPEED = 60; // attempt to move cyborhg
 const PLAYER_SPEED = 30; 
+  const dt = clock.getDelta();
 
   //if(!birdsEyeView) {updatePlayer(player, clock.getDelta());} // move the camera based on held keys (if not on birds eye view development mode)
   if(!birdsEyeView) {
@@ -210,7 +230,6 @@ const PLAYER_SPEED = 30;
     // attemtp to move player and cyborg 
     player.getWorldPosition(playerWorld);
 
-    const dt = clock.getDelta(); // only call once per frame
     const mover = mounted ? cyborg : player; // selects the body that receives movement
     const previousX = mover.position.x; // saves the starting horizontal position
     const previousZ = mover.position.z; // saves the starting depth position
@@ -359,7 +378,7 @@ function loadPlants() {
 
 
 window.addEventListener('keydown', (e) => {
-  if (e.code !== 'Space' || e.repeat) return;  // e.repeat stops hold-key retriggering
+  if (birdsEyeView || e.code !== 'Space' || e.repeat) return;  // only allow mounting in player view
 
   if (!mounted) {
     if (player.position.distanceTo(cyborg.position) > mount_rad) return;

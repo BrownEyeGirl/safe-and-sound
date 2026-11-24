@@ -1,5 +1,6 @@
 /** ASSETS
- * Here is where asset loading is handled. 
+ * Here is where asset loading is handled.
+ * All assets are scaled by 10x because the blender scene is 10x smaller  
 **/ 
 import * as THREE from 'three'; 
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -15,7 +16,7 @@ export function createLamppost(scene, x, z) {
 
     // settings
     const modelPath = 'media/lamppost.glb';
-    const modelScale = 1;
+    const modelScale = 10;
     const yOffset = -30;
 
     loader.load(modelPath, (gltf) => {
