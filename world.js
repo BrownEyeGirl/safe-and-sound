@@ -102,7 +102,7 @@ export function heightAt(x, z) {
 }
 
 
-/* Industrial Zone */ 
+/* Fun Zone */
 /* create Hills in a circle of radius r at x,z (add with scene.add(createHills(0, 800, 500)) */ 
 export function createHills(scene,x = 0, z = 0, radius = 500, segments = 100) {
   HILL_ZONES.push([x, z, radius]); // register BEFORE building so heightAt knows about it

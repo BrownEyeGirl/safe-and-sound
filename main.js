@@ -30,7 +30,7 @@ import { attachCamera, moveMesh } from './cameraControls.js';
 import { Can, checkCanCollection, spawnCans, cans } from './items/cans.js'; 
 //import { Flower, checkFlowerCollection, flowers } from './items/flowers.js'; 
 
-import { baseZone, industrialZone,botanicalZone } from './zones.js'; 
+import { baseZone, funZone,botanicalZone } from './zones.js';
 
 
 import * as COLORS from './style/colors.js'; 
@@ -236,7 +236,7 @@ const PLAYER_SPEED = 30;
     const zone = map.getZoneAt(playerWorld.x, playerWorld.z);
     if (zone !== currentZone) {
       currentZone = zone;
-      map.setZoneFog(zone);
+      //map.setZoneFog(zone);
       console.log(zone ? `Player entered ${zone.type} zone` : 'Player left all zones');
     }
     //updatePlayer(player, clock.getDelta(), PLAYER_SPEED);

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mulberry32 } from './world.js';
-import { baseZone, industrialZone, botanicalZone, safeZone, dangerZone } from './zones.js';
+import { baseZone, funZone, botanicalZone, safeZone, dangerZone } from './zones.js';
 
 /*
   ALGORITHM: tree-based "mission graph" generation + radial (ring) tree layout + rejection sampling.
@@ -9,7 +9,7 @@ import { baseZone, industrialZone, botanicalZone, safeZone, dangerZone } from '.
   - https://github.com/halftheopposite/graph-dungeon-generator
 
     1. GRAMMAR / TREE: build the room graph first, using the progression rules:
-         base -> industrial -> botanical (dead end)
+         base -> fun -> botanical (dead end)
                             -> safe -> danger (dead end)
        every room only ever connects to its parent, so dead ends stay dead ends by construction
     2. RADIAL LAYOUT: base in the middle, each type on its own ring, children placed
@@ -17,7 +17,7 @@ import { baseZone, industrialZone, botanicalZone, safeZone, dangerZone } from '.
     3. REJECTION SAMPLING: random placements that overlap a room or cross another path are thrown away
        and retried
 
-  paths are 40x40, except industrial -> botanical which are 20x20.
+  paths are 40x40, except fun -> botanical which are 20x20.
   every hallway reaches one block into the rooms at both ends, and hallways never touch each other
 */
 
@@ -26,13 +26,13 @@ const texture = new THREE.TextureLoader().load('/media/facade.png');
 texture.wrapS = THREE.RepeatWrapping;
 texture.wrapT = THREE.RepeatWrapping;
 
-// HOW MANY OF EACH (override: generateMap(scene, { counts: { industrial: 6, safe: 3 } }))
-const DEFAULT_COUNTS = { industrial: 2, botanical: 3, safe: 2, danger: 2 };
+// HOW MANY OF EACH (override: generateMap(scene, { counts: { fun: 6, safe: 3 } }))
+const DEFAULT_COUNTS = { fun: 2, botanical: 3, safe: 2, danger: 2 };
 
 // room footprint in world units [width (x), depth (z)]
 const SIZES = {
   base:       [400, 400],
-  industrial: [300, 400],
+  fun: [300, 400],
   botanical:  [500, 500],
   safe:       [400, 400],
   danger:     [240, 240],
@@ -41,7 +41,7 @@ const SIZES = {
 const WIDE = 60;    // every path (Mae & Cyborg)
 const NARROW = 10;  // except the ones leading to botanical zones (Mae only)
 
-const RING = { industrial: 600, botanical: 1000, safe: 1300, danger: 1650 }; // distance from the base (r)
+const RING = { fun: 600, botanical: 1000, safe: 1300, danger: 1650 }; // distance from the base (r)
 const GAP = 80;     // minimum empty space between rooms
 const PATH_GAP = 10;       // minimum empty space between two different hallways
 const EXTEND = 0.5;          // hallways reach this many blocks into each room (1 block = the hallway's width, ensures connection)
@@ -51,7 +51,7 @@ const TRIES = 200;  // placement attempts per room
 
 const BUILD = { // sets base for building each zone  
   base:       (scene, x, z)    => baseZone(scene, x, z, SIZES.base[0],SIZES.base[1]),
-  industrial: (scene, x, z)    => industrialZone(scene, x, z,SIZES.industrial[0],SIZES.industrial[1]),
+  fun: (scene, x, z)    => funZone(scene, x, z,SIZES.fun[0],SIZES.fun[1]),
   botanical:  (scene, x, z, r) => botanicalZone(scene, x, z, r), // returns { update }
   safe:       (scene, x, z)    => safeZone(scene, x, z,SIZES.safe[0], SIZES.safe[1]),
   danger:     (scene, x, z)    => dangerZone(scene, x, z, SIZES.danger[0], SIZES.danger[1]),
@@ -136,16 +136,16 @@ export function generateMap(scene, { seed = 69, counts = {} } = {}) {
   const make = (type, n, parents) =>
     parents.length ? Array.from({ length: n }, (_, i) => ({ type, parent: parents[i % parents.length] })) : [];
 
-  const industrial = make('industrial', want.industrial, [base]);
-  const botanical = make('botanical', want.botanical, industrial);   // dead ends
-  const safe = make('safe', want.safe, industrial);
+  const fun = make('fun', want.fun, [base]);
+  const botanical = make('botanical', want.botanical, fun);   // dead ends
+  const safe = make('safe', want.safe, fun);
   const danger = make('danger', want.danger, safe);                  // dead ends
   if (want.danger && !safe.length) console.warn('danger zones need at least one safe zone');
 
-  const tree = [...industrial, ...botanical, ...safe, ...danger]; // parents always come before children
+  const tree = [...fun, ...botanical, ...safe, ...danger]; // parents always come before children
 
   /* 2 + 3. PLACE EACH ROOM: random spot on its ring near its parent, keep it if everything fits */
-  const wedge = (2 * Math.PI) / Math.max(1, want.industrial); // angle owned by each industrial branch
+  const wedge = (2 * Math.PI) / Math.max(1, want.fun); // angle owned by each fun branch
 
   const roomFits = (room) =>
     Math.abs(room.x) + hw(room) <= LIMIT &&
@@ -165,7 +165,7 @@ export function generateMap(scene, { seed = 69, counts = {} } = {}) {
 
     const width = (room.type === 'botanical' || room.type === 'danger') ? NARROW : WIDE; // if condition room.type is true, use narrow; otherwise use wide
     const spread = wedge * (room.type === 'danger' ? 0.3 : 0.7); // determines how short hallways are using spead - danger is closer than the other rooms, less spead.
-    const center = room.type === 'industrial' ? (industrial.indexOf(room) + 0.5) * wedge : parent.angle;
+    const center = room.type === 'fun' ? (fun.indexOf(room) + 0.5) * wedge : parent.angle;
 
     for (let t = 0; t < TRIES; t++) {
       const angle = center + (rand() - 0.5) * spread;
@@ -245,7 +245,7 @@ export function generateMap(scene, { seed = 69, counts = {} } = {}) {
       )); // finishes the hallway footprint check
       return insideRoom || insideHallway; // allows movement inside either kind of footprint
     }, // finishes the map boundary check
-    /* sets random fog color for each zone to test */ 
+    /* sets random fog color for each zone to test
     setZoneFog(zone) {
       if (!zone) {
         scene.fog = null;
@@ -255,6 +255,7 @@ export function generateMap(scene, { seed = 69, counts = {} } = {}) {
       const color = new THREE.Color(Math.random(), Math.random(), Math.random());
       scene.fog = new THREE.FogExp2(color, 0.02);
     },
+    */
     update: (t) => updaters.forEach((fn) => fn(t)),
   };
 }
