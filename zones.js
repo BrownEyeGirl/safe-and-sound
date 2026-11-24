@@ -48,14 +48,14 @@ export function botanicalZone(scene, x, z, radius) {
     };
 }
 
-/* Safe Zone */
-export function safeZone(scene, x, z, width, length) {
-    WORLD.createGround(scene, x, z, width, length, COLORS.safeFloor);
+/* Final Zone */
+export function finalZone(scene, x, z, width, length) {
+    WORLD.createGround(scene, x, z, width, length, COLORS.finalFloor);
     showZoneBounds(scene, x, z, width, length, 0x00ff00);
 }
 
-/* Danger Zone */
-export function dangerZone(scene, x, z, width, length) {
-    WORLD.createGround(scene, x, z, width, length, COLORS.dangerFloor);
-    showZoneBounds(scene, x, z, width, length, 0xff0000);
-}
+// /* Danger Zone */
+// export function dangerZone(scene, x, z, width, length) {
+//     WORLD.createGround(scene, x, z, width, length, COLORS.dangerFloor);
+//     showZoneBounds(scene, x, z, width, length, 0xff0000);
+// }
