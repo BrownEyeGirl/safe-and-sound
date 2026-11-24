@@ -60,6 +60,7 @@ const BUILD = { // sets base for building each zone
 /*  small helpers  */
 const hw = (room) => SIZES[room.type][0] / 2; // half width
 const hd = (room) => SIZES[room.type][1] / 2; // half depth
+const snapTo10 = (value) => Math.round(value / 10) * 10;
 
 // rectangle {x0, x1, z0, z1}, optionally grown by pad
 const rectOf = (room, pad = 0) => ({
@@ -78,9 +79,14 @@ function routes(p, c, w, off) {
   const ext = w * EXTEND;
   const out = [];
 
-  const seg = (axis, fixed, from, to) => axis === 'x'
-    ? { x0: Math.min(from, to), x1: Math.max(from, to), z0: fixed - w / 2, z1: fixed + w / 2 }
-    : { x0: fixed - w / 2, x1: fixed + w / 2, z0: Math.min(from, to), z1: Math.max(from, to) };
+  const seg = (axis, fixed, from, to) => {
+    fixed = snapTo10(fixed);
+    from = snapTo10(from);
+    to = snapTo10(to);
+    return axis === 'x'
+      ? { x0: Math.min(from, to), x1: Math.max(from, to), z0: fixed - w / 2, z1: fixed + w / 2 }
+      : { x0: fixed - w / 2, x1: fixed + w / 2, z0: Math.min(from, to), z1: Math.max(from, to) };
+  };
 
   const z0 = p.z + off; // line a sideways hallway leaves on
   const x0 = p.x + off; // line an up-down hallway leaves on
@@ -172,8 +178,8 @@ export function generateMap(scene, { seed = 69, counts = {} } = {}) {
     for (let t = 0; t < TRIES; t++) {
       const angle = center + (rand() - 0.5) * spread;
       const dist = RING[room.type] + (rand() - 0.5);
-      room.x = Math.floor(Math.cos(angle) * dist);
-      room.z = Math.floor(Math.sin(angle) * dist);
+      room.x = snapTo10(Math.cos(angle) * dist);
+      room.z = snapTo10(Math.sin(angle) * dist);
       room.angle = angle;
       if (!roomFits(room)) continue;
 

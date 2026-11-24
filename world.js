@@ -71,7 +71,7 @@ export function loadGLTF(path) {
 
 // Rolling hills: noise that fades to flat toward FIELD_RADIUS let hills = createHills(); scene.add(hills);
 /*function hillsAt(x, z) {
-  const n = (perlin(x * 0.01, z * 0.02) + 0.05 * perlin(x * 0.01, z * 0.03)) * 0.5;
+  const n = (perlin(x * 0.02, z * 0.04) + 0.05 * perlin(x * 0.02, z * 0.06)) * 0.5;
   const d = Math.min(1, Math.hypot(x, z) / FIELD_RADIUS);
   const centerBoost = 1 - d * d * (3 - 2 * d);
   return n * centerBoost * MAX_HEIGHT;
@@ -97,14 +97,14 @@ export function heightAt(x, z) {
   }
   if (fade === 0) return 0; // outside every zone: flat ground
 
-  const n = (perlin(x * 0.01, z * 0.02) + 0.05 * perlin(x * 0.01, z * 0.03)) * 0.5;
+  const n = (perlin(x * 0.02, z * 0.04) + 0.05 * perlin(x * 0.02, z * 0.06)) * 0.5;
   return n * fade * MAX_HEIGHT;
 }
 
 
 /* Fun Zone */
 /* create Hills in a circle of radius r at x,z (add with scene.add(createHills(0, 800, 500)) */ 
-export function createHills(scene,x = 0, z = 0, radius = 500, segments = 100) {
+export function createHills(scene,x = 0, z = 0, radius = 500, segments = 500) {
   HILL_ZONES.push([x, z, radius]); // register BEFORE building so heightAt knows about it
 
   const geo = new THREE.RingGeometry(0, radius, 128, segments); // circular, with rows going outward
